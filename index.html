@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Logic Calculator — BSIS 1-1</title>
+  <!-- react and babel -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
+  <!-- fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body,#root{height:100%;width:100%;overflow:hidden}
+    body{
+      font-family:'Poppins',sans-serif;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* ====== ANIMATED BACKGROUND ====== */
+    .app-bg{
+      position:fixed;inset:0;z-index:0;
+      background:linear-gradient(135deg,#0a0a1a 0%,#0d1333 25%,#0a0a2e 50%,#15064a 75%,#0a0a1a 100%);
+      background-size:400% 400%;
+      animation:bgShift 15s ease infinite;
+    }
+    @keyframes bgShift{
+      0%{background-position:0% 50%}
+      50%{background-position:100% 50%}
+      100%{background-position:0% 50%}
+    }
+
+    /* Floating orbs */
+    .orb{
+      position:fixed;border-radius:50%;pointer-events:none;z-index:0;
+      filter:blur(60px);opacity:0.3;
+      will-change:transform;
+    }
+    .orb-1{width:500px;height:500px;background:#6366f1;top:-100px;left:-100px;animation:orbFloat1 20s ease-in-out infinite}
+    .orb-2{width:400px;height:400px;background:#ec4899;bottom:-80px;right:-80px;animation:orbFloat2 25s ease-in-out infinite}
+    .orb-3{width:350px;height:350px;background:#06b6d4;top:40%;left:60%;animation:orbFloat3 18s ease-in-out infinite}
+    @keyframes orbFloat1{0%,100%{transform:translate(0,0)}50%{transform:translate(120px,80px)}}
+    @keyframes orbFloat2{0%,100%{transform:translate(0,0)}50%{transform:translate(-100px,-60px)}}
+    @keyframes orbFloat3{0%,100%{transform:translate(0,0)}33%{transform:translate(-80px,50px)}66%{transform:translate(60px,-40px)}}
+
+    /* Floating particles */
+    .particles{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+    .particle{
+      position:absolute;border-radius:50%;
+      background:rgba(255,255,255,0.15);
+      animation:particleFloat linear infinite;
+      will-change:transform;
+    }
+    @keyframes particleFloat{
+      0%{transform:translateY(100vh) scale(0);opacity:0}
+      10%{opacity:1}
+      90%{opacity:1}
+      100%{transform:translateY(-10vh) scale(1);opacity:0}
+    }
+
+    /* Grid pattern overlay */
+    .grid-overlay{
+      position:fixed;inset:0;z-index:0;pointer-events:none;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+      background-size:60px 60px;
+    }
+
+    /* ====== NAV ====== */
+    .navbar{
+      position:fixed;top:0;left:0;right:0;z-index:1000;
+      background:rgba(10,10,30,0.8);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      border-bottom:1px solid rgba(99,102,241,0.2);
+      padding:0 32px;height:70px;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .nav-inner{
+      max-width:1400px;width:100%;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .nav-brand{
+      font-family:'Orbitron',sans-serif;
+      font-weight:800;font-size:20px;
+      background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);
+      background-size:200% 200%;
+      animation:brandShimmer 3s ease infinite;
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+      letter-spacing:2px;
+      cursor:default;
+    }
+    @keyframes brandShimmer{
+      0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}
+    }
+    .nav-brand .brand-icon{
+      display:inline-block;margin-right:8px;
+      animation:pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+    .nav-tabs{display:flex;gap:6px}
+    .nav-tab{
+      position:relative;
+      font-family:'Poppins',sans-serif;
+      font-weight:600;font-size:14px;
+      color:rgba(255,255,255,0.6);
+      background:transparent;border:none;
+      padding:10px 24px;border-radius:12px;
+      cursor:pointer;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);
+      overflow:hidden;
+    }
+    .nav-tab::before{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(168,85,247,0.15));
+      border-radius:12px;opacity:0;transition:opacity 0.3s;
+    }
+    .nav-tab:hover{color:rgba(255,255,255,0.9)}
+    .nav-tab:hover::before{opacity:1}
+    .nav-tab.active{
+      color:#fff;
+      background:linear-gradient(135deg,#6366f1,#a855f7);
+      box-shadow:0 4px 20px rgba(99,102,241,0.4),0 0 40px rgba(99,102,241,0.1);
+    }
+    .nav-tab.active::after{
+      content:'';position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);
+      width:40px;height:3px;border-radius:2px;
+      background:#fff;box-shadow:0 0 10px rgba(255,255,255,0.5);
+    }
+
+    /* ====== PAGE WRAPPER ====== */
+    .page-container{
+      position:relative;z-index:1;
+      height:100vh;padding-top:70px;
+      overflow:hidden;
+    }
+
+    /* ====== PAGE TRANSITION ====== */
+    .page{
+      position:absolute;inset:0;top:70px;
+      overflow-y:auto;overflow-x:hidden;
+      padding:32px;
+      transition:all 0.6s cubic-bezier(0.4,0,0.2,1);
+    }
+    .page.enter{opacity:0;transform:translateX(60px) scale(0.97)}
+    .page.active{opacity:1;transform:translateX(0) scale(1)}
+    .page.exit{opacity:0;transform:translateX(-60px) scale(0.97)}
+
+    /* Custom scrollbar */
+    .page::-webkit-scrollbar{width:6px}
+    .page::-webkit-scrollbar-track{background:transparent}
+    .page::-webkit-scrollbar-thumb{background:rgba(99,102,241,0.3);border-radius:3px}
+    .page::-webkit-scrollbar-thumb:hover{background:rgba(99,102,241,0.5)}
+
+    /* ====== GLASSMORPHISM CARD ====== */
+    .glass-card{
+      background:rgba(255,255,255,0.05);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:24px;
+      box-shadow:
+        0 8px 32px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+      padding:36px;
+      max-width:1200px;margin:0 auto;
+      animation:cardAppear 0.7s cubic-bezier(0.4,0,0.2,1) forwards;
+    }
+    @keyframes cardAppear{
+      from{opacity:0;transform:translateY(30px) scale(0.96)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+
+    /* ====== TITLE ====== */
+    .calc-title{
+      font-family:'Orbitron',sans-serif;
+      font-size:28px;font-weight:800;
+      background:linear-gradient(135deg,#6366f1 0%,#a855f7 40%,#ec4899 70%,#f97316 100%);
+      background-size:300% 300%;
+      animation:titleGlow 4s ease infinite;
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+      margin-bottom:28px;
+      text-align:center;
+      letter-spacing:1px;
+    }
+    @keyframes titleGlow{
+      0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}
+    }
+    .calc-title .title-icon{
+      display:inline-block;
+      animation:bounce 2s ease-in-out infinite;
+      margin-right:10px;
+    }
+    @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+    /* ====== CONTROLS ====== */
+    .controls-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:16px;
+      margin-bottom:24px;
+      padding:24px;
+      background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.06);
+      border-radius:16px;
+    }
+    .control-group{
+      display:flex;flex-direction:column;gap:8px;
+    }
+    .control-label{
+      font-size:12px;font-weight:700;
+      color:rgba(255,255,255,0.5);
+      text-transform:uppercase;letter-spacing:1.5px;
+    }
+    .control-select, .control-input{
+      padding:12px 16px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:rgba(255,255,255,0.05);
+      color:#e2e8f0;
+      font-family:'Poppins',sans-serif;
+      font-size:14px;font-weight:500;
+      transition:all 0.3s ease;
+      cursor:pointer;
+      outline:none;
+      -webkit-appearance:none;
+      appearance:none;
+    }
+    .control-select option{background:#1a1a3e;color:#e2e8f0}
+    .control-select:hover,.control-input:hover{
+      border-color:rgba(99,102,241,0.4);
+      background:rgba(99,102,241,0.08);
+    }
+    .control-select:focus,.control-input:focus{
+      border-color:#6366f1;
+      box-shadow:0 0 0 3px rgba(99,102,241,0.15),0 0 20px rgba(99,102,241,0.1);
+    }
+
+    /* ====== BUTTONS ====== */
+    .btn{
+      position:relative;overflow:hidden;
+      font-family:'Poppins',sans-serif;
+      font-weight:700;font-size:14px;
+      padding:14px 28px;border:none;border-radius:14px;
+      cursor:pointer;
+      transition:all 0.4s cubic-bezier(0.4,0,0.2,1);
+      letter-spacing:0.5px;
+      text-transform:uppercase;
+    }
+    .btn::before{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(135deg,rgba(255,255,255,0.2),transparent);
+      opacity:0;transition:opacity 0.3s;
+    }
+    .btn:hover::before{opacity:1}
+    .btn::after{
+      content:'';position:absolute;
+      width:200px;height:200px;
+      background:radial-gradient(circle,rgba(255,255,255,0.3),transparent 70%);
+      top:var(--y,50%);left:var(--x,50%);
+      transform:translate(-50%,-50%) scale(0);
+      border-radius:50%;transition:transform 0.6s;
+      pointer-events:none;
+    }
+    .btn:active::after{transform:translate(-50%,-50%) scale(2);transition:transform 0s}
+    .btn-primary{
+      background:linear-gradient(135deg,#6366f1,#8b5cf6,#a855f7);
+      color:#fff;
+      box-shadow:0 4px 20px rgba(99,102,241,0.35);
+    }
+    .btn-primary:hover{
+      transform:translateY(-3px) scale(1.03);
+      box-shadow:0 8px 30px rgba(99,102,241,0.5),0 0 60px rgba(99,102,241,0.15);
+    }
+    .btn-primary:active{transform:translateY(0) scale(0.98)}
+    .btn-secondary{
+      background:rgba(255,255,255,0.07);
+      color:rgba(255,255,255,0.7);
+      border:1px solid rgba(255,255,255,0.1);
+    }
+    .btn-secondary:hover{
+      background:rgba(255,255,255,0.12);
+      color:#fff;
+      transform:translateY(-2px);
+      box-shadow:0 4px 20px rgba(255,255,255,0.05);
+    }
+    .btn-group{
+      display:flex;gap:12px;flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    /* ====== INFO BOX ====== */
+    .info-box{
+      margin:16px 0 24px;
+      padding:16px 20px;
+      background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(168,85,247,0.05));
+      border:1px solid rgba(99,102,241,0.15);
+      border-left:4px solid #6366f1;
+      border-radius:12px;
+      color:rgba(255,255,255,0.65);
+      font-size:13px;line-height:1.7;
+    }
+    .row-info{
+      text-align:center;font-size:12px;font-weight:600;
+      color:rgba(255,255,255,0.4);
+      margin-top:12px;padding:8px;
+      background:rgba(255,255,255,0.02);
+      border-radius:8px;
+    }
+
+    /* ====== TABLE ====== */
+    .table-container{
+      overflow:auto;border-radius:16px;
+      border:1px solid rgba(255,255,255,0.06);
+      max-height:500px;
+      background:rgba(0,0,0,0.2);
+    }
+    .table-container::-webkit-scrollbar{width:6px;height:6px}
+    .table-container::-webkit-scrollbar-track{background:transparent}
+    .table-container::-webkit-scrollbar-thumb{background:rgba(99,102,241,0.3);border-radius:3px}
+    .truth-table{
+      border-collapse:collapse;width:100%;min-width:400px;
+    }
+    .truth-table th,.truth-table td{
+      padding:14px 16px;text-align:center;
+      font-family:'JetBrains Mono',monospace;
+      font-size:13px;font-weight:500;
+      border-bottom:1px solid rgba(255,255,255,0.04);
+      color:rgba(255,255,255,0.75);
+    }
+    .truth-table thead th{
+      background:rgba(99,102,241,0.12);
+      position:sticky;top:0;z-index:2;
+      font-weight:700;font-size:14px;
+      color:#a5b4fc;
+      text-transform:uppercase;letter-spacing:1px;
+      border-bottom:2px solid rgba(99,102,241,0.3);
+    }
+    .truth-table tbody tr{
+      transition:all 0.25s ease;
+    }
+    .truth-table tbody tr:hover{
+      background:rgba(99,102,241,0.06);
+    }
+    .truth-table tbody tr:nth-child(even){
+      background:rgba(255,255,255,0.015);
+    }
+    .truth-table tbody tr:nth-child(even):hover{
+      background:rgba(99,102,241,0.08);
+    }
+    /* Row enter animation */
+    .truth-table tbody tr{
+      animation:rowSlide 0.4s ease backwards;
+    }
+    @keyframes rowSlide{
+      from{opacity:0;transform:translateX(-10px)}
+      to{opacity:1;transform:translateX(0)}
+    }
+    .cell-true{
+      color:#34d399;font-weight:700;
+      text-shadow:0 0 12px rgba(52,211,153,0.4);
+    }
+    .cell-false{
+      color:#f87171;font-weight:700;
+      text-shadow:0 0 12px rgba(248,113,113,0.3);
+    }
+    .result-true-cell{
+      background:linear-gradient(90deg,rgba(16,185,129,0.12),rgba(16,185,129,0.04));
+      color:#34d399;font-weight:800;
+      text-shadow:0 0 16px rgba(52,211,153,0.5);
+      border-left:2px solid rgba(52,211,153,0.3);
+    }
+    .result-false-cell{
+      background:linear-gradient(90deg,rgba(239,68,68,0.1),rgba(239,68,68,0.03));
+      color:#f87171;font-weight:800;
+      text-shadow:0 0 16px rgba(248,113,113,0.4);
+      border-left:2px solid rgba(248,113,113,0.2);
+    }
+
+    /* ====== MEMBERS PAGE ====== */
+    .members-bg{
+      position:relative;
+      min-height:calc(100vh - 70px);
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:60px 20px;
+    }
+    /* Decorative shapes behind members */
+    .deco-shape{
+      position:absolute;border-radius:50%;
+      pointer-events:none;z-index:0;
+    }
+    .deco-1{
+      width:300px;height:300px;
+      border:2px solid rgba(99,102,241,0.15);
+      top:10%;left:5%;
+      animation:spin 30s linear infinite;
+    }
+    .deco-2{
+      width:200px;height:200px;
+      border:2px solid rgba(236,72,153,0.12);
+      bottom:15%;right:8%;
+      animation:spin 25s linear infinite reverse;
+    }
+    .deco-3{
+      width:150px;height:150px;
+      background:radial-gradient(circle,rgba(168,85,247,0.08),transparent);
+      top:50%;left:50%;transform:translate(-50%,-50%);
+      animation:pulse2 4s ease-in-out infinite;
+    }
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    @keyframes pulse2{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.5}50%{transform:translate(-50%,-50%) scale(1.5);opacity:0.2}}
+
+    .members-title{
+      font-family:'Orbitron',sans-serif;
+      font-size:36px;font-weight:900;
+      text-align:center;
+      background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);
+      background-size:200% 200%;
+      animation:titleGlow 4s ease infinite;
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+      margin-bottom:12px;
+      position:relative;z-index:1;
+    }
+    .members-subtitle{
+      text-align:center;
+      color:rgba(255,255,255,0.4);
+      font-size:15px;font-weight:400;
+      margin-bottom:50px;
+      position:relative;z-index:1;
+    }
+    .members-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:24px;max-width:900px;width:100%;
+      position:relative;z-index:1;
+    }
+    .member-card{
+      background:rgba(255,255,255,0.05);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:20px;
+      padding:36px 24px;
+      text-align:center;
+      cursor:default;
+      transition:all 0.5s cubic-bezier(0.4,0,0.2,1);
+      animation:cardFloat 0.8s cubic-bezier(0.4,0,0.2,1) backwards;
+      position:relative;overflow:hidden;
+    }
+    .member-card::before{
+      content:'';position:absolute;inset:-1px;
+      border-radius:20px;padding:1px;
+      background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(236,72,153,0.3),rgba(168,85,247,0.3));
+      -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+      opacity:0;transition:opacity 0.4s;
+    }
+    .member-card:hover::before{opacity:1}
+    .member-card:hover{
+      transform:translateY(-12px) scale(1.02);
+      box-shadow:0 20px 60px rgba(99,102,241,0.15),0 0 80px rgba(99,102,241,0.05);
+      background:rgba(255,255,255,0.07);
+    }
+    @keyframes cardFloat{
+      from{opacity:0;transform:translateY(40px) scale(0.9)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+    .member-avatar{
+      width:80px;height:80px;
+      border-radius:50%;
+      background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);
+      display:flex;align-items:center;justify-content:center;
+      margin:0 auto 20px;
+      font-size:32px;font-weight:800;
+      color:#fff;
+      box-shadow:0 8px 30px rgba(99,102,241,0.3);
+      animation:avatarGlow 3s ease-in-out infinite;
+    }
+    .member-avatar-img{
+      width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;
+    }
+    @keyframes avatarGlow{
+      0%,100%{box-shadow:0 8px 30px rgba(99,102,241,0.3)}
+      50%{box-shadow:0 8px 40px rgba(168,85,247,0.5),0 0 60px rgba(99,102,241,0.1)}
+    }
+    .member-name{
+      font-family:'Poppins',sans-serif;
+      font-weight:700;font-size:20px;
+      color:#f1f5f9;
+      margin-bottom:6px;
+    }
+    .member-role{
+      font-size:13px;font-weight:500;
+      color:rgba(255,255,255,0.4);
+      text-transform:uppercase;
+      letter-spacing:1.5px;
+    }
+    .member-badge{
+      display:inline-block;
+      margin-top:14px;
+      padding:6px 16px;
+      background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(168,85,247,0.1));
+      border:1px solid rgba(99,102,241,0.2);
+      border-radius:20px;
+      font-size:11px;font-weight:600;
+      color:#a5b4fc;
+      letter-spacing:1px;
+    }
+
+    /* ====== TOAST ====== */
+    .toast{
+      position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);
+      background:rgba(16,185,129,0.2);
+      backdrop-filter:blur(8px);
+      border:1px solid rgba(16,185,129,0.3);
+      padding:14px 28px;border-radius:14px;
+      color:#34d399;font-weight:600;font-size:14px;
+      box-shadow:0 8px 32px rgba(0,0,0,0.3);
+      z-index:9999;
+      transition:transform 0.5s cubic-bezier(0.4,0,0.2,1);
+      pointer-events:none;
+    }
+    .toast.show{transform:translateX(-50%) translateY(0)}
+
+    /* ====== CURTAIN INTRO ====== */
+    .curtain-overlay{
+      position:fixed;inset:0;z-index:10000;
+      display:flex;pointer-events:none;
+    }
+    .curtain-overlay.active{pointer-events:all}
+    .curtain-panel{
+      flex:1;height:100%;
+      background:linear-gradient(135deg,#0a0a1a 0%,#1a1a3e 50%,#0a0a2e 100%);
+      position:relative;overflow:hidden;
+      transition:transform 1.2s cubic-bezier(0.77,0,0.175,1);
+    }
+    .curtain-panel::before{
+      content:'';
+      position:absolute;inset:0;
+      background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(168,85,247,0.15),rgba(236,72,153,0.1));
+      animation:curtainShimmer 3s ease-in-out infinite;
+    }
+    @keyframes curtainShimmer{
+      0%,100%{opacity:0.3}50%{opacity:0.6}
+    }
+    .curtain-left{transform-origin:left;border-right:2px solid rgba(99,102,241,0.4)}
+    .curtain-right{transform-origin:right;border-left:2px solid rgba(99,102,241,0.4)}
+    .curtain-overlay.opening .curtain-left{transform:translateX(-100%)}
+    .curtain-overlay.opening .curtain-right{transform:translateX(100%)}
+    .curtain-content{
+      position:absolute;inset:0;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      z-index:10001;
+      opacity:1;
+      transition:opacity 0.6s ease;
+    }
+    .curtain-overlay.opening .curtain-content{opacity:0}
+    .curtain-logo{
+      font-family:'Orbitron',sans-serif;
+      font-size:48px;font-weight:900;
+      background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899,#f97316);
+      background-size:300% 300%;
+      animation:logoGlow 3s ease infinite;
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+      margin-bottom:30px;
+      text-align:center;
+      letter-spacing:3px;
+      text-shadow:0 0 40px rgba(99,102,241,0.5);
+    }
+    @keyframes logoGlow{
+      0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}
+    }
+    .curtain-message{
+      background:rgba(255,255,255,0.06);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:20px;
+      padding:40px 60px;
+      max-width:700px;
+      text-align:center;
+      box-shadow:0 20px 60px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.1);
+      animation:messageFloat 0.8s ease-out;
+    }
+    @keyframes messageFloat{
+      from{opacity:0;transform:translateY(30px) scale(0.9)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+    .curtain-message h2{
+      font-family:'Poppins',sans-serif;
+      font-size:28px;font-weight:700;
+      color:#fff;
+      margin-bottom:16px;
+      line-height:1.4;
+    }
+    .curtain-message p{
+      font-family:'Poppins',sans-serif;
+      font-size:18px;font-weight:500;
+      color:rgba(255,255,255,0.7);
+      margin-bottom:30px;
+      line-height:1.6;
+    }
+    .curtain-enter-btn{
+      font-family:'Poppins',sans-serif;
+      font-weight:700;font-size:16px;
+      padding:16px 40px;
+      border:none;border-radius:12px;
+      background:linear-gradient(135deg,#6366f1,#8b5cf6,#a855f7);
+      color:#fff;
+      cursor:pointer;
+      transition:all 0.4s ease;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      box-shadow:0 8px 30px rgba(99,102,241,0.4);
+    }
+    .curtain-enter-btn:hover{
+      transform:translateY(-3px) scale(1.05);
+      box-shadow:0 12px 40px rgba(99,102,241,0.6),0 0 80px rgba(99,102,241,0.2);
+    }
+    .curtain-enter-btn:active{
+      transform:translateY(0) scale(0.98);
+    }
+    .curtain-particles{
+      position:absolute;inset:0;overflow:hidden;z-index:-1;
+    }
+    .curtain-particle{
+      position:absolute;border-radius:50%;
+      background:rgba(255,255,255,0.2);
+      animation:curtainParticleFloat linear infinite;
+    }
+    @keyframes curtainParticleFloat{
+      0%{transform:translateY(100vh) translateX(-50px) scale(0);opacity:0}
+      10%{opacity:1}
+      90%{opacity:1}
+      100%{transform:translateY(-10vh) translateX(50px) scale(1);opacity:0}
+    }
+
+    /* ====== RESPONSIVE ====== */
+    @media(max-width:768px){
+      .glass-card{padding:20px;border-radius:16px}
+      .calc-title{font-size:20px}
+      .controls-grid{grid-template-columns:1fr;padding:16px}
+      .btn-group{flex-direction:column}
+      .btn{width:100%}
+      .members-title{font-size:26px}
+      .members-grid{grid-template-columns:1fr}
+      .truth-table th,.truth-table td{padding:10px 8px;font-size:11px}
+      .navbar{padding:0 16px}
+      .nav-brand{font-size:16px}
+      .nav-tab{padding:8px 16px;font-size:12px}
+      .curtain-logo{font-size:32px}
+      .curtain-message{padding:30px 24px}
+      .curtain-message h2{font-size:22px}
+      .curtain-message p{font-size:15px}
+    }
+    @media(max-width:480px){
+      .page{padding:16px}
+      .glass-card{padding:16px;border-radius:12px}
+      .calc-title{font-size:17px}
+      .members-title{font-size:22px}
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- bg music, plays when user clicks enter -->
+  <audio id="bgMusic" loop preload="auto">
+    <source src="./Bensound - Slow Motion (Cinematic Free Vlog Music).mp3" type="audio/mpeg">
+  </audio>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    /* ====== LOGIC HELPERS ====== */
+    function xor(a,b){ return !!a !== !!b }
+    function impl(a,b){ return !a || !!b }
+    function equiv(a,b){ return !!a === !!b }
+
+    function getVarNames(n){
+      return Array.from({length:n},(_,i)=>String.fromCharCode(80+i));
+    }
+
+    function evalOp(op,vals,n){
+      const vars = getVarNames(n).map(v=>!!vals[v]);
+      switch(op){
+        case 'AND': return vars.every(v=>v);
+        case 'OR': return vars.some(v=>v);
+        case 'XOR': return vars.reduce((a,b)=>xor(a,b),false);
+        case 'NAND': return !vars.every(v=>v);
+        case 'NOR': return !vars.some(v=>v);
+        case 'XNOR': return !vars.reduce((a,b)=>xor(a,b),false);
+        case 'IMPLIES': return vars.reduce((a,b)=>impl(a,b));
+        case 'EQUIV': return vars.slice(1).every(v=>equiv(vars[0],v));
+        default: return false;
+      }
+    }
+
+    function buildCustomEval(raw,n){
+      if(!raw||!raw.trim()) return null;
+      const vars = getVarNames(n);
+      let js = raw
+        .replace(/\bAND\b/gi,'&&').replace(/\bOR\b/gi,'||').replace(/\bNOT\b/gi,'!')
+        .replace(/<->/g,' equiv ').replace(/->/g,' impl ').replace(/\^/g,' xor ')
+        .replace(/\s+/g,' ').trim();
+      return vals=>{
+        try{
+          const a=vars.map(v=>!!vals[v]);
+          const fn=Function(...vars,'xor','impl','equiv','return !!('+js+')');
+          return fn(...a,xor,impl,equiv);
+        }catch(e){return 'ERR'}
+      };
+    }
+
+    function generateRows(n,op,customExpr){
+      const vars=getVarNames(n);
+      const count=1<<n;
+      let ev=null;
+      if(op==='CUSTOM'){
+        ev=buildCustomEval(customExpr,n);
+        if(!ev) return {rows:[],vars,error:'Enter an expression first.'};
+      }
+      const rows=[];
+      for(let i=0;i<count;i++){
+        const vals={};
+        for(let j=0;j<n;j++) vals[vars[j]]=!!(i&(1<<(n-1-j)));
+        const result=op==='CUSTOM'?ev(vals):evalOp(op,vals,n);
+        rows.push({vals,result});
+      }
+      return {rows,vars,error:null};
+    }
+
+    /* ====== PARTICLES COMPONENT ====== */
+    function Particles(){
+      const particles = useMemo(()=>{
+        return Array.from({length:20},(_,i)=>({
+          id:i,
+          left:Math.random()*100,
+          size:Math.random()*3+1,
+          dur:Math.random()*12+8,
+          delay:Math.random()*10,
+          opacity:Math.random()*0.4+0.1,
+        }));
+      },[]);
+      return (
+        <div className="particles">
+          {particles.map(p=>(
+            <div key={p.id} className="particle" style={{
+              left:p.left+'%',
+              width:p.size+'px',height:p.size+'px',
+              animationDuration:p.dur+'s',
+              animationDelay:p.delay+'s',
+              opacity:p.opacity,
+            }}/>
+          ))}
+        </div>
+      );
+    }
+
+    /* ====== CURTAIN INTRO COMPONENT ====== */
+    function CurtainIntro({onEnter}){
+      const particles = useMemo(()=>{
+        return Array.from({length:15},(_,i)=>({
+          id:i,
+          left:Math.random()*100,
+          size:Math.random()*4+2,
+          dur:Math.random()*15+10,
+          delay:Math.random()*8,
+        }));
+      },[]);
+
+      return (
+        <div className="curtain-content">
+          <div className="curtain-particles">
+            {particles.map(p=>(
+              <div key={p.id} className="curtain-particle" style={{
+                left:p.left+'%',
+                width:p.size+'px',height:p.size+'px',
+                animationDuration:p.dur+'s',
+                animationDelay:p.delay+'s',
+              }}/>
+            ))}
+          </div>
+          <div className="curtain-logo">&#9881; LOGIC CALC</div>
+          <div className="curtain-message">
+            <h2>Hello! Welcome to</h2>
+            <p>
+              Bachelor of Science in<br/>
+              Information Systems<br/>
+              <strong style={{color:'#a5b4fc',fontSize:'20px'}}>Block 1-1</strong>
+            </p>
+            <button className="curtain-enter-btn" onClick={onEnter}>
+              &#9889; Enter Calculator
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ====== TOAST COMPONENT ====== */
+    function Toast({message,show}){
+      return <div className={'toast'+(show?' show':'')}>{message}</div>;
+    }
+
+    /* ====== NAVBAR COMPONENT ====== */
+    function Navbar({page,setPage}){
+      return (
+        <nav className="navbar">
+          <div className="nav-inner">
+            <div className="nav-brand">
+              <span className="brand-icon">&#9670;</span>
+              LOGIC CALC
+            </div>
+            <div className="nav-tabs">
+              <button
+                className={'nav-tab'+(page==='calc'?' active':'')}
+                onClick={()=>setPage('calc')}
+              >
+                &#9881; Calculator
+              </button>
+              <button
+                className={'nav-tab'+(page==='members'?' active':'')}
+                onClick={()=>setPage('members')}
+              >
+                &#9733; Members
+              </button>
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    /* ====== TRUTH TABLE ====== */
+    function TruthTable({rows,vars}){
+      if(!rows.length) return null;
+      return (
+        <div className="table-container">
+          <table className="truth-table">
+            <thead>
+              <tr>
+                {vars.map(v=><th key={v}>{v}</th>)}
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r,i)=>{
+                const isTrue=r.result===true;
+                const isFalse=r.result===false;
+                return (
+                  <tr key={i} style={{animationDelay:(i*0.03)+'s'}}>
+                    {vars.map(v=>(
+                      <td key={v} className={r.vals[v]?'cell-true':'cell-false'}>
+                        {r.vals[v]?'T':'F'}
+                      </td>
+                    ))}
+                    <td className={isTrue?'result-true-cell':isFalse?'result-false-cell':''}>
+                      {isTrue?'T':isFalse?'F':String(r.result)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    /* ====== CALCULATOR PAGE ====== */
+    function CalculatorPage({onToast}){
+      const [varCount,setVarCount]=useState(2);
+      const [operator,setOperator]=useState('AND');
+      const [customExpr,setCustomExpr]=useState('');
+      const [data,setData]=useState({rows:[],vars:[],error:null});
+
+      const operators=[
+        {v:'AND',l:'AND (\u2227)'},
+        {v:'OR',l:'OR (\u2228)'},
+        {v:'XOR',l:'XOR (\u2295)'},
+        {v:'NAND',l:'NAND'},
+        {v:'NOR',l:'NOR'},
+        {v:'XNOR',l:'XNOR'},
+        {v:'IMPLIES',l:'IMPLIES (\u2192)'},
+        {v:'EQUIV',l:'EQUIV (\u2194)'},
+        {v:'CUSTOM',l:'Custom Expression'},
+      ];
+
+      const doGenerate=useCallback(()=>{
+        setData(generateRows(varCount,operator,customExpr));
+      },[varCount,operator,customExpr]);
+
+      useEffect(()=>{doGenerate()},[]);
+
+      const doCopy=useCallback(async()=>{
+        if(!data.rows.length) return;
+        const header=data.vars.join(',')+',Result';
+        const body=data.rows.map(r=>{
+          const vals=data.vars.map(v=>r.vals[v]?'T':'F').join(',');
+          const res=r.result===true?'T':r.result===false?'F':String(r.result);
+          return vals+','+res;
+        }).join('\n');
+        try{
+          await navigator.clipboard.writeText(header+'\n'+body);
+          onToast('Copied to clipboard!');
+        }catch(e){
+          onToast('Copy failed');
+        }
+      },[data,onToast]);
+
+      const rowCount=1<<varCount;
+
+      return (
+        <div className="glass-card">
+          <h1 className="calc-title">
+            <span className="title-icon">&#9881;</span>
+            Logical Calculator — Truth Table (4 Variables)
+          </h1>
+
+          <div className="controls-grid">
+            <div className="control-group">
+              <span className="control-label">Variables</span>
+              <select className="control-select" value={varCount}
+                onChange={e=>setVarCount(Number(e.target.value))}>
+                <option value={2}>2 (P, Q)</option>
+                <option value={3}>3 (P, Q, R)</option>
+                <option value={4}>4 (P, Q, R, S)</option>
+              </select>
+            </div>
+            <div className="control-group">
+              <span className="control-label">Operator</span>
+              <select className="control-select" value={operator}
+                onChange={e=>setOperator(e.target.value)}>
+                {operators.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+              </select>
+            </div>
+            {operator==='CUSTOM' && (
+              <div className="control-group" style={{gridColumn:'1/-1'}}>
+                <span className="control-label">Expression</span>
+                <input className="control-input" value={customExpr}
+                  onChange={e=>setCustomExpr(e.target.value)}
+                  placeholder="e.g. !(P && Q) || R  or  P -> (Q || R)" />
+              </div>
+            )}
+            <div className="control-group" style={{justifyContent:'flex-end'}}>
+              <div className="btn-group">
+                <button className="btn btn-primary" onClick={doGenerate}>
+                  &#9889; Generate
+                </button>
+                <button className="btn btn-secondary" onClick={doCopy}>
+                  &#128203; Copy CSV
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="info-box">
+            Custom expressions support variables <strong>P-S</strong> and operators:
+            <strong> !</strong>, <strong>AND/OR/NOT</strong>, <strong>&amp;&amp;</strong>,
+            <strong> ||</strong>, <strong>^</strong> (XOR), <strong>-&gt;</strong> (implies),
+            <strong> &lt;-&gt;</strong> (equiv). Use parentheses for grouping.
+          </div>
+
+          <div className="row-info">
+            {data.error ? data.error : `Showing ${data.rows.length} rows (2^${varCount} = ${rowCount})`}
+          </div>
+
+          <div style={{marginTop:16}}>
+            <TruthTable rows={data.rows} vars={data.vars} />
+          </div>
+        </div>
+      );
+    }
+
+    /* ====== MEMBERS PAGE ====== */
+    function MembersPage(){
+      const members=[
+        {name:'John Bien Gojar', role:'Group Member', img:'./0.jpg'},
+      ];
+      return (
+        <div className="members-bg">
+          {/* Decorative shapes */}
+          <div className="deco-shape deco-1"/>
+          <div className="deco-shape deco-2"/>
+          <div className="deco-shape deco-3"/>
+
+          <h1 className="members-title">
+            &#10024; GROUP Members
+          </h1>
+          <p className="members-subtitle">The team behind the Logic Calculator</p>
+
+          <div className="members-grid">
+            {members.map((m,i)=>(
+              <div className="member-card" key={i}
+                style={{animationDelay:(i*0.15)+'s'}}>
+                <div className="member-avatar">
+                  {m.img ? <img src={m.img} alt={m.name} className="member-avatar-img"/> : m.initial}
+                </div>
+                <div className="member-name">{m.name}</div>
+                <div className="member-role">{m.role}</div>
+                <div className="member-badge">&#9733; TEAM</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* ====== APP ROOT ====== */
+    function App(){
+      const [page,setPage]=useState('calc');
+      const [toast,setToast]=useState({msg:'',show:false});
+      const [curtainOpen,setCurtainOpen]=useState(false);
+      const [showCurtain,setShowCurtain]=useState(true);
+      const timerRef=useRef(null);
+      const audioRef=useRef(null);
+
+      // Handle curtain entrance
+      const handleEnter=useCallback(()=>{
+        setCurtainOpen(true);
+        
+        // Play music when curtain opens
+        setTimeout(()=>{
+          const audio = document.getElementById('bgMusic');
+          if(audio){
+            audio.volume = 0.3;
+            audio.play().catch(err=>console.log('Audio play error:',err));
+          }
+        },600);
+        
+        // Remove curtain from DOM after animation
+        setTimeout(()=>{
+          setShowCurtain(false);
+        },1800);
+      },[]);
+
+      const showToast=useCallback((msg)=>{
+        clearTimeout(timerRef.current);
+        setToast({msg,show:true});
+        timerRef.current=setTimeout(()=>setToast(t=>({...t,show:false})),2000);
+      },[]);
+
+      return (
+        <>
+          {/* Animated BG layers */}
+          <div className="app-bg"/>
+          <div className="orb orb-1"/>
+          <div className="orb orb-2"/>
+          <div className="orb orb-3"/>
+          <Particles/>
+          <div className="grid-overlay"/>
+
+          {/* Curtain Intro */}
+          {showCurtain && (
+            <div className={'curtain-overlay'+(curtainOpen?' opening':' active')}>
+              <div className="curtain-panel curtain-left"/>
+              <div className="curtain-panel curtain-right"/>
+              <CurtainIntro onEnter={handleEnter}/>
+            </div>
+          )}
+
+          <Navbar page={page} setPage={setPage}/>
+
+          <div className="page-container">
+            {page==='calc' && (
+              <div className="page active" key="calc">
+                <CalculatorPage onToast={showToast}/>
+              </div>
+            )}
+            {page==='members' && (
+              <div className="page active" key="members">
+                <MembersPage/>
+              </div>
+            )}
+          </div>
+
+          <Toast message={toast.msg} show={toast.show}/>
+        </>
+      );
+    }
+
+    /* Mount */
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App/>);
+  </script>
